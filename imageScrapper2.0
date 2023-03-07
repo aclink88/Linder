@@ -1,0 +1,75 @@
+import yelp
+import pandas as pd
+import numpy as np
+#from yelp.client import Client
+from yelpapi import YelpAPI
+import random
+
+client_id = "eJ_rHARugbCfnB-cXGEucA"
+api_key = "v5g6lWFzY6sXhlXrxbhbbxYb--0WOIFv44TycZLYkwmcsR2iTvhOqlJZmJEZKIsQddPWgQmvFBBCxEeEIpFXcipEHqG4IWeGx2iBCNrske6WWqhsoLis0h6-KQSGYXYx"
+
+yelp_api = YelpAPI(api_key)
+
+# Search Term: Search terms used in a standard Yelp search.
+# Location: City, St or Zip Code
+# Search Limit: How many results do you want (max 50)
+
+term = 'delicious' #'mediterranean'
+location = '100 E Pratt St'
+search_limit = 15
+
+response = yelp_api.search_query(term = term,
+                                 location = location,
+                                 limit = search_limit)
+                                 
+from bs4 import BeautifulSoup
+import requests
+from lxml import html  
+import csv
+import requests
+from time import sleep
+import re
+import argparse
+import sys
+import time as t
+import sys
+from PIL import Image
+from io import BytesIO
+
+cols = list(response['businesses'][0].keys())
+# rez = pd.DataFrame(columns=cols)
+## Concatenate is much quicker than using append method
+## Don't need concat for this use case (squares entries)
+# rez = pd.concat([pd.DataFrame(response['businesses'], columns=cols) for i in response['businesses']], 
+#                 ignore_index=True, sort=False, verify_integrity=True)
+rez = pd.DataFrame(response['businesses'], columns=cols)
+
+## Number of restaurants affects runtime; not num of pics scrapped
+header = {'user-agent': 'lunch fun'}
+foopics = list()
+for x in rez.alias:
+    ## Get url of restaurant's food pic page
+    furl = "https://www.yelp.com/biz_photos/"+x+"?tab=food"
+    ## Establish scrapper to pull individual images then pull
+    r = requests.get(furl, headers=header)
+    foodie = BeautifulSoup(r.text, 'html')
+    ## Don't take first image item as it's very tiny prof pic in top right corner
+    ## There are 30 (actual) pics per page (31 including prof pic); can change 
+    ## this limit later if want to cut down on time (no limit arg pulls all)
+    fl = [x['src'] for x in foodie.find_all("img", "photo-box-img", limit=31)[1:]]
+    foopics.append(fl)
+
+## Add image url's to dataframe
+rez['foopics'] = foopics
+
+rez['name']
+
+## Select restaurant to display images for
+place = 'Di Pasquale'
+## Get food image url's for restaurant
+imurl = rez.query("name.str.contains('"+place+"')", engine="python")['foopics'].to_list()[0]
+## Display images for select restaurant
+for i in imurl:
+    response = requests.get(i)
+    img = Image.open(BytesIO(response.content))
+    display(img)
